@@ -1,0 +1,76 @@
+\documentclass[11pt]{article}
+\usepackage[a4paper,margin=2.3cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{lmodern}
+\title{Generative Model Checkpoint\\SparseGrid--3$\times$3, Stride--2}
+\date{}
+
+\begin{document}\maketitle
+
+\section{Pattern dictionary}
+
+\begin{itemize}
+  \item Size: $K\!+\!1$ patterns; ID $0$ is the \emph{background pattern}.
+  \item For each $k\ge 1$ store nine complex coefficients
+        \[
+           P_{k,\Delta f,\Delta n}\in\mathbb C,
+           \qquad \Delta f,\Delta n\in\{-1,0,+1\}.
+        \]
+        Coefficients that are structurally inactive are set to $0$.
+  \item Energy normalisation:
+        $\displaystyle\sum_{\Delta f,\Delta n}|P_{k,\Delta f,\Delta n}|^{2}=1$.
+  \item Background pattern: all nine coefficients are $0$.
+\end{itemize}
+
+\section{Occurrence lattice}
+
+\begin{itemize}
+  \item Fixed centres every second pixel:
+        $\mathcal C=\{(2i,\,2j)\mid i=0,\dots,\lceil F/2\rceil-1,\;
+        j=0,\dots,\lceil N/2\rceil-1\}$.
+  \item For each centre $(f,n)\in\mathcal C$ sample
+        \begin{enumerate}
+          \item Pattern ID $k_{f,n}\in\{0,\dots,K\}$,
+          \item Micro--shift phases
+            $Z^{f}_{f,n}=e^{j\zeta^{f}_{f,n}},\;
+             Z^{n}_{f,n}=e^{j\zeta^{n}_{f,n}},\;
+             \zeta\in(-\pi,\pi]$,
+          \item Occurrence amplitude $A_{f,n}=\rho_{f,n}e^{j\theta_{f,n}}$.
+        \end{enumerate}
+        If $k_{f,n}=0$ set $A_{f,n}=0$ and omit the rotators.
+\end{itemize}
+
+Continuous offsets derived from micro--shifts:
+\[
+\delta f = \frac{2}{2\pi}\,\arg Z^{f}_{f,n}\in(-1,1),
+\qquad
+\delta n = \frac{2}{2\pi}\,\arg Z^{n}_{f,n}\in(-1,1).
+\]
+
+\section{Deposition}
+
+For each non--background occurrence and every cell
+$(\Delta f,\Delta n)$ with $P_{k,\Delta f,\Delta n}\neq 0$:
+\[
+\hat f = f+\Delta f+\delta f,\qquad
+\hat n = n+\Delta n+\delta n.
+\]
+Let $f_1=\lfloor\hat f\rfloor$, $n_1=\lfloor\hat n\rfloor$,
+$w_f=\hat f-f_1$, $w_n=\hat n-n_1$.
+Add
+\[
+\text{val}=A_{f,n}\,P_{k,\Delta f,\Delta n}
+\]
+to the four neighbouring lattice cells
+with weights $(1-w_f)(1-w_n)$, $(1-w_f)w_n$, $w_f(1-w_n)$, $w_f w_n$.
+
+\section{Bitstream}
+
+\begin{itemize}
+  \item Transmit patterns (ID $1\dots K$); pattern 0 is implicit.
+  \item For every lattice slot transmit the pattern ID.  
+        If ID $\neq 0$ also transmit $\zeta^{f}$, $\zeta^{n}$ and $A_{f,n}$.
+  \item Runs of background IDs are run--length--encoded.
+\end{itemize}
+
+\end{document}
